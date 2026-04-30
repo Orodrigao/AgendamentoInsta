@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pane & Salute — Social</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <img src="logo.png" alt="Pane & Salute" onerror="this.style.display='none'">
+  <div>
+    <h1>Pane & Salute</h1>
+    <span>Publicações nas redes sociais</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- CONFIGURAÇÕES -->
+  <div id="settings-panel" class="card" style="display:none;">
+    <div class="card-title"><span class="icon">⚙️</span> Configurações de API</div>
+
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Chave da API do Buffer</label>
+      <input type="password" id="buffer-key" placeholder="sua chave do buffer..." autocomplete="off">
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Cloudinary — Cloud Name</label>
+      <input type="text" id="cloudinary-cloud" placeholder="ex: pane-salute">
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Cloudinary — Upload Preset (unsigned)</label>
+      <input type="text" id="cloudinary-preset" placeholder="ex: pane_unsigned">
+    </div>
+    <div class="field-group" style="margin-bottom:14px;">
+      <label class="field-label">Buffer — ID da conta Instagram</label>
+      <input type="text" id="buffer-instagram" placeholder="ID da conta no Buffer">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Buffer — ID da conta Facebook</label>
+      <input type="text" id="buffer-facebook" placeholder="ID da conta no Buffer">
+    </div>
+    <div style="margin-top:16px; display:flex; gap:10px; align-items:center;">
+      <button class="btn btn-primary" onclick="saveSettings()" style="max-width:160px;">Salvar</button>
+      <button class="btn btn-link" onclick="loadBufferChannels()">🔍 Buscar IDs do Buffer</button>
+    </div>
+    <div id="channels-list" style="margin-top:12px; font-size:13px; color:var(--cinza);"></div>
+  </div>
+
+  <!-- CARD IMAGEM -->
+  <div class="card">
+    <div class="card-title"><span class="icon">🖼️</span> Imagem do Post</div>
+    <div class="upload-area" id="upload-area">
+      <input type="file" accept="image/*" id="image-input" onchange="handleImageUpload(event)">
+      <img id="upload-preview" class="upload-preview" alt="preview">
+      <div class="upload-placeholder" id="upload-placeholder">
+        <span class="icon-big">📷</span>
+        <strong>Clique para escolher a imagem</strong>
+        <p>JPG, PNG ou WEBP — ideal 1080×1080px</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD COPY -->
+  <div class="card">
+    <div class="card-title"><span class="icon">✍️</span> Texto do Post</div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" id="tab-manual" onclick="setMode('manual')">Texto próprio</button>
+      <button class="mode-tab" id="tab-claude" onclick="setMode('claude')">Pedir ao Claude</button>
+    </div>
+
+    <div id="mode-manual">
+      <textarea id="manual-text" placeholder="Cole ou escreva o texto do post aqui..."></textarea>
+    </div>
+
+    <div id="mode-claude" style="display:none;">
+      <textarea id="claude-instruction" placeholder='Ex: "Foto do croissant saindo do forno. Tom acolhedor, mencionar a loja Julio de Castilhos."'></textarea>
+      <button class="btn btn-secondary full" onclick="generateCopy()" id="btn-generate">
+        <div class="spinner" id="spinner-generate"></div>
+        <span id="btn-generate-label">✨ Gerar Copy com IA</span>
+      </button>
+    </div>
+
+    <!-- PREVIEW DA COPY -->
+    <div id="copy-preview-section" style="display:none;">
+      <div class="divider"></div>
+      <div class="section-label">Copy gerada — revise e aprove</div>
+      <div class="copy-preview-box" id="copy-box">
+        <p id="copy-preview-text"></p>
+        <button class="copy-edit-btn" onclick="editCopy()" title="Editar">✏️</button>
+      </div>
+      <div id="copy-edit-area" style="display:none; margin-top:8px;">
+        <textarea id="copy-edit-text" style="min-height:80px;"></textarea>
+        <button class="btn btn-secondary" style="margin-top:8px;" onclick="saveCopyEdit()">Confirmar edição</button>
+      </div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="btn btn-secondary" onclick="rejectCopy()">↩ Pedir outra</button>
+        <button class="btn btn-yellow" onclick="approveCopy()" id="btn-approve">✓ Aprovar e continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD AGENDAMENTO -->
+  <div class="card">
+    <div class="card-title"><span class="icon">📅</span> Agendamento</div>
+
+    <div class="section-label" style="margin-bottom:8px;">Publicar em</div>
+    <div class="platforms">
+      <button class="platform-btn selected" data-platform="instagram" onclick="togglePlatform(this)">📸 Instagram</button>
+      <button class="platform-btn selected" data-platform="facebook" onclick="togglePlatform(this)">📘 Facebook</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="datetime-row">
+      <div class="field-group">
+        <label class="field-label">Data</label>
+        <input type="date" id="post-date">
+      </div>
+      <div class="field-group">
+        <label class="field-label">Horário</label>
+        <input type="time" id="post-time" value="09:00">
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:20px;">
+      <button class="btn btn-primary" id="btn-schedule" onclick="schedulePost()">
+        <div class="spinner" id="spinner-schedule"></div>
+        <span id="btn-schedule-label">📤 Agendar no Buffer</span>
+      </button>
+    </div>
+
+    <div id="schedule-status" class="status-msg"></div>
+  </div>
+
+  <!-- BOTÕES RODAPÉ -->
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:8px;">
+    <button class="btn-link" onclick="toggleSettings()">⚙️ Configurar APIs</button>
+    <button class="btn-link" onclick="toggleHistory()">📋 Histórico de posts</button>
+  </div>
+
+  <!-- HISTÓRICO -->
+  <div id="history-section" class="card" style="display:none; margin-top:16px;">
+    <div class="card-title"><span class="icon">📋</span> Histórico</div>
+    <div id="history-list"></div>
+  </div>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
